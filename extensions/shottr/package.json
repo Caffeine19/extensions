@@ -14,63 +14,63 @@
   "license": "MIT",
   "commands": [
     {
-      "name": "sstr",
+      "name": "open-shottr",
       "title": "Open Shottr",
       "description": "Open Shottr App",
       "mode": "no-view",
       "icon": "shottr.png"
     },
     {
-      "name": "ssst",
+      "name": "open-shottr-settings",
       "title": "Open Shottr Settings",
       "description": "Open Shottr Settings App",
       "mode": "no-view",
       "icon": "settings.png"
     },
     {
-      "name": "ssfs",
+      "name": "capture-fullscreen",
       "title": "Capture Fullscreen",
       "description": "Fullscreen Screenshot",
       "mode": "no-view",
       "icon": "grab-fullscreen.png"
     },
     {
-      "name": "ssa",
+      "name": "capture-area",
       "title": "Capture Area",
       "description": "Area Screenshot",
       "mode": "no-view",
       "icon": "grab-area.png"
     },
     {
-      "name": "ssw",
+      "name": "capture-repeat",
       "title": "Capture Repeat",
       "description": "Repeat Screenshot",
       "mode": "no-view",
       "icon": "grab-append.png"
     },
     {
-      "name": "ssrg",
+      "name": "capture-window",
       "title": "Capture Window",
       "description": "Window Screenshot",
       "mode": "no-view",
       "icon": "grab-window.png"
     },
     {
-      "name": "sss",
+      "name": "capture-scrolling",
       "title": "Capture Scrolling",
       "description": "Scrolling Screenshot",
       "mode": "no-view",
       "icon": "grab-scrolling.png"
     },
     {
-      "name": "sssr",
+      "name": "capture-scrolling-reverse",
       "title": "Capture Scrolling Reverse",
       "description": "Scrolling Reverse Screenshot",
       "mode": "no-view",
       "icon": "grab-scrolling-reverse.png"
     },
     {
-      "name": "ssds",
+      "name": "capture-delayed",
       "title": "Capture Delayed",
       "description": "Delayed Screenshot",
       "mode": "no-view",
@@ -85,35 +85,35 @@
       ]
     },
     {
-      "name": "ssap",
+      "name": "capture-append",
       "title": "Capture Append",
       "description": "Append Screenshot",
       "mode": "no-view",
       "icon": "grab-append.png"
     },
     {
-      "name": "sso",
+      "name": "ocr",
       "title": "OCR",
       "description": "Optical Character Recognition",
       "mode": "no-view",
       "icon": "grab-ocr.png"
     },
     {
-      "name": "ssc",
+      "name": "load-clipboard",
       "title": "Load Clipboard",
       "description": "Load from Clipboard",
       "mode": "no-view",
       "icon": "load-clipboard.png"
     },
     {
-      "name": "ssf",
+      "name": "load-file",
       "title": "Load File",
       "description": "Load from File",
       "mode": "no-view",
       "icon": "load-file.png"
     },
     {
-      "name": "ssu",
+      "name": "uploads",
       "title": "Uploads",
       "description": "Open Uploads",
       "mode": "no-view",

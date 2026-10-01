@@ -21,6 +21,7 @@ Shottr is a tiny and fast mac screenshot tool with annotations, beautiful backgr
     - [Close Main Window](#close-main-window)
   - [Using Shottr](#using-shottr)
   - [Troubleshooting](#troubleshooting)
+    - [Command Deeplinks](#command-deeplinks)
 
 ## Introduction
 
@@ -66,6 +67,26 @@ Screen Capture Features
 
 If you encounter issues:
 
-1. Check for updates to Shottr and the Raycast Extension.
-2. Restart Raycast or your computer if the extension is not responding.
-3. Create an issue and reach out via the Raycast Slack.
+1. Try the deeplink directly in Terminal first — run `open "<deeplink>"` (see the table below). If the deeplink works outside Raycast but not inside the extension, the issue is likely with Raycast or the extension; if it doesn't work at all, the issue is with Shottr (check that the URL Schema API is enabled in Shottr Settings → Advanced).
+2. Check for updates to Shottr and the Raycast Extension.
+3. Restart Raycast or your computer if the extension is not responding.
+4. Create an issue and reach out via the Raycast Slack.
+
+### Command Deeplinks
+
+| Command Title             | Deeplink                                       |
+| ------------------------- | ---------------------------------------------- |
+| Capture Append            | `shottr://grab/append`                         |
+| Capture Area              | `shottr://grab/area`                           |
+| Capture Delayed           | `shottr://grab/delayed?t=<secs>` (default `3`) |
+| Capture Fullscreen        | `shottr://grab/fullscreen`                     |
+| Capture Repeat            | `shottr://grab/repeat`                         |
+| Capture Scrolling         | `shottr://grab/scrolling`                      |
+| Capture Scrolling Reverse | `shottr://grab/delayed`                        |
+| Capture Window            | `shottr://grab/window`                         |
+| Load Clipboard            | `shottr://load/clipboard`                      |
+| Load File                 | `shottr://load/file`                           |
+| OCR                       | `shottr://ocr`                                 |
+| Open Shottr               | `shottr://show`                                |
+| Open Shottr Settings      | `shottr://settings`                            |
+| Uploads                   | `shottr://uploads`                             |

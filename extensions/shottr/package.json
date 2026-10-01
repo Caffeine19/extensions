@@ -78,7 +78,7 @@
       "arguments": [
         {
           "name": "delay",
-          "placeholder": "Delay (secs)",
+          "placeholder": "Delay (secs, default 3)",
           "type": "text",
           "required": false
         }

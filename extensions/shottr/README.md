@@ -82,7 +82,7 @@ If you encounter issues:
 | Capture Fullscreen        | `shottr://grab/fullscreen`                     |
 | Capture Repeat            | `shottr://grab/repeat`                         |
 | Capture Scrolling         | `shottr://grab/scrolling`                      |
-| Capture Scrolling Reverse | `shottr://grab/delayed`                        |
+| Capture Scrolling Reverse | `shottr://grab/scrolling/reverse`              |
 | Capture Window            | `shottr://grab/window`                         |
 | Load Clipboard            | `shottr://load/clipboard`                      |
 | Load File                 | `shottr://load/file`                           |

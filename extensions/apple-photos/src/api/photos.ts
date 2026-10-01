@@ -96,11 +96,11 @@ export async function fetchMostRecentPhotoId(): Promise<string> {
   `);
 }
 
-async function exportPhoto(photoId: string, destDir: string): Promise<void> {
+async function exportPhoto(photoId: string, destDir: string, rendered = false): Promise<void> {
   await runAppleScript(`
     tell application "Photos"
       set theItem to media item id "${photoId}"
-      export {theItem} to (POSIX file "${destDir}") with using originals
+      export {theItem} to (POSIX file "${destDir}")${rendered ? "" : " with using originals"}
     end tell
   `);
 }
@@ -119,13 +119,14 @@ async function exportAndConvert(
   destDir: string,
   outputPath: string,
   maxDimension?: number,
+  rendered = false,
 ): Promise<void> {
   const safe = idToFilename(photoId);
   const tempDir = path.join(destDir, `tmp_${safe}`);
   fs.mkdirSync(tempDir, { recursive: true });
 
   try {
-    await exportPhoto(photoId, tempDir);
+    await exportPhoto(photoId, tempDir, rendered);
 
     const exported = fs.readdirSync(tempDir).sort();
     if (exported.length === 0) {
@@ -144,12 +145,12 @@ async function exportAndConvert(
   }
 }
 
-export async function getOrExportThumbnail(photoId: string): Promise<string> {
+export async function getOrExportThumbnail(photoId: string, rendered = false): Promise<string> {
   const cachePath = thumbnailPath(photoId);
   if (fs.existsSync(cachePath)) {
     return cachePath;
   }
-  await exportAndConvert(photoId, thumbnailDir(), cachePath, 400);
+  await exportAndConvert(photoId, thumbnailDir(), cachePath, 400, rendered);
   return cachePath;
 }
 
@@ -166,6 +167,160 @@ export async function openPhotoInPhotos(photoId: string): Promise<void> {
   await runAppleScript(`
     tell application "Photos"
       spotlight (media item id "${photoId}")
+      activate
+    end tell
+  `);
+}
+
+export type PhotoAlbum = {
+  id: string;
+  name: string;
+  parentPath: string;
+  itemCount: number;
+  coverMediaId: string | null;
+  isSmartAlbum: boolean;
+};
+
+export async function fetchAlbums(): Promise<PhotoAlbum[]> {
+  const result = await runAppleScript(`
+    on albumRow(theAlbum, parentPath)
+      tell application "Photos"
+        set albumName to name of theAlbum
+        set albumId to id of theAlbum
+        set itemCount to 0
+        try
+          set itemCount to count of media items of theAlbum
+        end try
+      end tell
+      return albumName & tab & albumId & tab & (itemCount as text) & tab & parentPath
+    end albumRow
+
+    on walkFolder(theFolder, parentPath)
+      tell application "Photos"
+        set folderName to name of theFolder
+      end tell
+      if parentPath is "" then
+        set currentPath to folderName
+      else
+        set currentPath to parentPath & " / " & folderName
+      end if
+      set rows to {}
+      tell application "Photos"
+        repeat with theAlbum in albums of theFolder
+          set end of rows to my albumRow(theAlbum, currentPath)
+        end repeat
+        repeat with subFolder in folders of theFolder
+          set rows to rows & (my walkFolder(subFolder, currentPath))
+        end repeat
+      end tell
+      return rows
+    end walkFolder
+
+    set allRows to {}
+    tell application "Photos"
+      repeat with theAlbum in albums
+        set end of allRows to my albumRow(theAlbum, "")
+      end repeat
+      repeat with subFolder in folders
+        set allRows to allRows & (my walkFolder(subFolder, ""))
+      end repeat
+    end tell
+    set output to ""
+    repeat with i from 1 to count of allRows
+      if i > 1 then set output to output & linefeed
+      set output to output & item i of allRows
+    end repeat
+    return output
+  `);
+
+  if (!result.trim()) return [];
+
+  const albums = result
+    .trim()
+    .split("\n")
+    .map((line) => {
+      const [name, id, itemCount, parentPath = ""] = line.split("\t");
+      return {
+        id,
+        name,
+        parentPath,
+        itemCount: parseInt(itemCount, 10) || 0,
+      };
+    })
+    .filter((album) => album.id && album.name);
+
+  // Cover = the album's key photo (Photos → Make Key Photo) via PhotoKit. Smart albums don't exist
+  // in PhotoKit at all (and Photos can't assign them a key photo), so their ids are absent from the
+  // map — that's how they're detected, letting the UI show a fitting placeholder instead of guessing.
+  const covers = await fetchAlbumCoverIds(albums.map((album) => album.id));
+
+  return albums
+    .map((album) => ({
+      ...album,
+      coverMediaId: covers[album.id] ?? null,
+      isSmartAlbum: !(album.id in covers),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+}
+
+async function fetchAlbumCoverIds(albumIds: string[]): Promise<Record<string, string | null>> {
+  if (albumIds.length === 0) return {};
+
+  // AppleScriptObjC: Photos' AppleScript dictionary has no key-asset property, so reach for
+  // PhotoKit directly (`count` must be written |count|() — it collides with the `count` command).
+  // Only regular user albums are considered (assetCollectionSubtype = 2): smart albums can't have
+  // a key photo in Photos, and PhotoKit doesn't even resolve them for their AppleScript ids.
+  const result = await runAppleScript(
+    `
+      use framework "Photos"
+      use framework "Foundation"
+
+      on keyAssetId(theCollection, opts)
+        set keys to current application's PHAsset's fetchKeyAssetsInAssetCollection:theCollection options:opts
+        if keys is missing value then return ""
+        if (keys's |count|()) = 0 then return ""
+        return ((keys's objectAtIndex:0)'s localIdentifier()) as text
+      end keyAssetId
+
+      on coverRow(theCollection, opts)
+        if (theCollection's assetCollectionSubtype()) is not 2 then return ""
+        set albumId to (theCollection's localIdentifier()) as text
+        return albumId & tab & my keyAssetId(theCollection, opts)
+      end coverRow
+
+      on run argv
+        set output to ""
+        set opts to current application's PHFetchOptions's alloc()'s init()
+        set ids to current application's NSArray's arrayWithArray:argv
+        set cols to current application's PHAssetCollection's fetchAssetCollectionsWithLocalIdentifiers:ids options:opts
+        repeat with i from 0 to ((cols's |count|()) - 1)
+          set theRow to my coverRow(cols's objectAtIndex:i, opts)
+          if (output is not "") and (theRow is not "") then set output to output & linefeed
+          set output to output & theRow
+        end repeat
+        return output
+      end run
+    `,
+    albumIds,
+  );
+
+  if (!result.trim()) return {};
+
+  // Key presence = a regular album PhotoKit knows; value = its key photo id, or null when unset.
+  return result
+    .trim()
+    .split("\n")
+    .map((line) => line.split("\t"))
+    .reduce<Record<string, string | null>>((covers, [albumId, coverId]) => {
+      if (albumId) covers[albumId] = coverId || null;
+      return covers;
+    }, {});
+}
+
+export async function openAlbumInPhotos(albumId: string): Promise<void> {
+  await runAppleScript(`
+    tell application "Photos"
+      spotlight (album id "${albumId}")
       activate
     end tell
   `);

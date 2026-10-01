@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "apple-photos",
   "title": "Apple Photos",
-  "description": "Browse your recent Apple Photos in a grid and paste the latest photo directly into any app.",
+  "description": "Browse your recent Apple Photos in a grid, jump into any album, and paste the latest photo directly into any app.",
   "icon": "command-icon.png",
   "author": "wesbaker",
   "categories": [
@@ -16,6 +16,13 @@
       "title": "Search Recent Photos",
       "subtitle": "Apple Photos",
       "description": "Browse your most recent photos in a grid",
+      "mode": "view"
+    },
+    {
+      "name": "go-to-albums",
+      "title": "Go to Albums",
+      "subtitle": "Apple Photos",
+      "description": "Browse your albums and open one in Photos",
       "mode": "view"
     },
     {

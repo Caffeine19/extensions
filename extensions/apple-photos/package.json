@@ -5,6 +5,9 @@
   "description": "Browse your recent Apple Photos in a grid, jump into any album, and paste the latest photo directly into any app.",
   "icon": "command-icon.png",
   "author": "wesbaker",
+  "contributors": [
+    "CaffeineCat"
+  ],
   "categories": [
     "Media",
     "Productivity"

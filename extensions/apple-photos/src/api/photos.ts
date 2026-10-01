@@ -150,7 +150,7 @@ export async function getOrExportThumbnail(photoId: string, rendered = false): P
   if (fs.existsSync(cachePath)) {
     return cachePath;
   }
-  await exportAndConvert(photoId, thumbnailDir(), cachePath, 400, rendered);
+  await exportAndConvert(photoId, thumbnailDir(), cachePath, undefined, rendered);
   return cachePath;
 }
 

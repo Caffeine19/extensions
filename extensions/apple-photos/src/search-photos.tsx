@@ -1,5 +1,5 @@
 import {
-  Grid,
+  List,
   ActionPanel,
   Action,
   Icon,
@@ -96,18 +96,22 @@ export default function Command() {
   }, [refreshKey, count]);
 
   return (
-    <Grid columns={3} isLoading={isLoading} inset={Grid.Inset.Medium} searchBarPlaceholder="Filter by filename or date">
+    <List isShowingDetail isLoading={isLoading} searchBarPlaceholder="Filter by filename or date">
       {photos.map((photo) => {
         const thumbnailPath = thumbnails[photo.id];
 
         return (
-          <Grid.Item
+          <List.Item
             key={photo.id}
-            content={thumbnailPath ?? Icon.Image}
+            icon={thumbnailPath ?? Icon.Image}
             title={photo.filename}
-            subtitle={formatDate(photo.date)}
+            accessories={[{ text: formatDate(photo.date) }]}
             keywords={[photo.filename, formatDate(photo.date)]}
-            quickLook={thumbnailPath ? { name: photo.filename, path: thumbnailPath } : undefined}
+            detail={
+              thumbnailPath ? (
+                <List.Item.Detail markdown={`![${photo.filename}](${encodeURI("file://" + thumbnailPath)})`} />
+              ) : undefined
+            }
             actions={
               <ActionPanel>
                 <ActionPanel.Section>
@@ -156,7 +160,6 @@ export default function Command() {
                       }
                     }}
                   />
-                  {thumbnailPath ? <Action.ToggleQuickLook shortcut={{ modifiers: ["cmd"], key: "y" }} /> : null}
                 </ActionPanel.Section>
                 <ActionPanel.Section>
                   <Action
@@ -171,10 +174,10 @@ export default function Command() {
           />
         );
       })}
-      <Grid.EmptyView
+      <List.EmptyView
         title={isLoading ? "Loading photos…" : "No photos found"}
         description={isLoading ? "Exporting thumbnails from Photos…" : ""}
       />
-    </Grid>
+    </List>
   );
 }

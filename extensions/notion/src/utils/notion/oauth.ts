@@ -13,6 +13,7 @@ const client = new OAuth.PKCEClient({
 const { notion_token } = getPreferenceValues<Preferences>();
 
 let notion: Client | null = null;
+let currentToken: string | null = null;
 
 export const notionService = new OAuthService({
   client,
@@ -23,6 +24,7 @@ export const notionService = new OAuthService({
   personalAccessToken: notion_token?.trim() || undefined,
   extraParameters: { owner: "user" },
   onAuthorize({ token }) {
+    currentToken = token;
     notion = new Client({ auth: token });
   },
 });
@@ -76,4 +78,17 @@ export function getNotionClient() {
   }
 
   return notion;
+}
+
+/**
+ * Get auth token for Notion API (supports both PAT and OAuth).
+ */
+export function getAuthToken(): string {
+  if (notion_token) {
+    return notion_token;
+  }
+  if (currentToken) {
+    return currentToken;
+  }
+  throw new Error("No Notion auth token available.");
 }

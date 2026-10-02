@@ -213,16 +213,44 @@ async function getSparkEmailBody(emailId: string): Promise<string> {
 }
 
 /**
- * Fetch emails from Spark Desktop CLI and convert to Message format
+ * Parse account emails from `spark accounts` output.
+ */
+function parseAccounts(output: string): string[] {
+  const accounts: string[] = [];
+  for (const line of output.split("\n")) {
+    const match = line.match(/Email Account:\s+([^\s"]+)/);
+    if (match) {
+      accounts.push(match[1]);
+    }
+  }
+  return accounts;
+}
+
+/**
+ * Get all account emails from Spark CLI
+ */
+async function getSparkAccounts(): Promise<string[]> {
+  const output = await execSpark(["accounts"]);
+  return parseAccounts(output);
+}
+
+/**
+ * Fetch emails from Spark Desktop CLI and convert to Message format.
  */
 export async function getSparkMessages(searchType: SearchType, sinceDate?: Date): Promise<Message[]> {
   try {
     const prefs = getPreferenceValues<Preferences>();
     const lookbackMinutes = calculateLookBackMinutes(prefs.lookBackUnit, parseInt(prefs.lookBackAmount || "1", 10));
 
-    // Fetch recent emails from Spark inbox
-    const output = await execSpark(["emails", "Inbox"]);
-    const emailRows = parseEmailsTable(output);
+    // Get all accounts and fetch inbox for each one in parallel
+    const accounts = await getSparkAccounts();
+    const results = await Promise.all(
+      accounts.map(async (account) => {
+        const output = await execSpark(["emails", `${account}:Inbox`]);
+        return parseEmailsTable(output);
+      })
+    );
+    const emailRows = results.flat();
 
     if (emailRows.length === 0) {
       return [];

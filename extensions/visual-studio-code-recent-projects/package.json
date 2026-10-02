@@ -36,7 +36,8 @@
     "sillashead",
     "KamilDev",
     "muhammadrizo",
-    "Tambouil"
+    "Tambouil",
+    "CaffeineCat"
   ],
   "keywords": [
     "vscode",
@@ -73,6 +74,12 @@
       "mode": "no-view"
     },
     {
+      "name": "open-agents-window",
+      "title": "Open Agents Window",
+      "description": "Open the VS Code Agents window",
+      "mode": "no-view"
+    },
+    {
       "name": "extensions",
       "title": "Show Installed Extensions",
       "description": "Manage installed extensions",
@@ -90,12 +97,6 @@
       "description": "Show commands of the VS Code Command Palette",
       "disabledByDefault": true,
       "mode": "view"
-    },
-    {
-      "name": "open-agents-window",
-      "title": "Open Agents Window",
-      "description": "Open the Agents Window",
-      "mode": "no-view"
     }
   ],
   "preferences": [
@@ -186,15 +187,6 @@
           "title": "Grid"
         }
       ]
-    },
-    {
-      "name": "keepSectionOrder",
-      "type": "checkbox",
-      "title": "Advanced",
-      "required": false,
-      "label": "Keep section order",
-      "default": false,
-      "description": "Keep the order of the sections while searching folders, files, etc."
     },
     {
       "name": "closeOtherWindows",

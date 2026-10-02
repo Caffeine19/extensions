@@ -9,6 +9,15 @@
 - Optimize Git branch fetching with caching
 - Bump all dependencies to the latest
 
+## [Add: Open Agents Window] - 2026-09-23
+
+- Added the `Open Agents Window` command, which runs the VS Code CLI with the `--agents` flag to open the Agents window. Requires a build with `--agents` CLI support (e.g. VS Code Insiders); unsupported builds show an error toast with the CLI message.
+
+## [Fix: Search keeps recent order] - 2026-09-23
+
+- Fixed typing in the search bar re-ranking the project list: search is now custom-filtered so results keep the recent-projects order (and pinned order) instead of being re-ranked by Raycast's fuzzy search. The query matches project name, path, label, and remote authority.
+- Removed the `Keep Section Order` preference because section and item order are now always preserved while searching.
+
 ## [Fix: Crash with remote SSH entries] - 2026-09-16
 
 - Fixed "Maximum update depth exceeded" crash when the recent projects list contains remote SSH entries. Items now use their full URI as a stable identifier, preventing Raycast from re-creating items during navigation. Fixes [#31120](https://github.com/raycast/extensions/issues/31120).

@@ -8,7 +8,6 @@ import { gmail as gmailClient, auth, gmail_v1 } from "@googleapis/gmail";
 import { Message, Preferences, SearchType } from "./types";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { calculateLookBackMinutes, stripHtmlTags, extractVerificationLink } from "./utils";
-import fetch from "node-fetch";
 
 // Create an OAuth client ID via https://console.developers.google.com/apis/credentials
 // As application type choose "iOS" (required for PKCE)

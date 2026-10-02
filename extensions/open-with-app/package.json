@@ -9,11 +9,13 @@
     "Productivity"
   ],
   "author": "fturcheti",
+  "owner": "CaffeineCat",
   "contributors": [
     "omarshahine",
     "pernielsentikaer",
     "Sheraff",
-    "rpenco"
+    "rpenco",
+    "CaffeineCat"
   ],
   "license": "MIT",
   "commands": [

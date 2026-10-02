@@ -1,9 +1,14 @@
 import { PopToRootType, closeMainWindow, popToRoot } from "@raycast/api";
-import { SettingsProfileOpenBehaviour, Tab } from "../types/interfaces";
-import { getApplicationName } from "../utils/appUtils";
-import { geNotInstalledMessage } from "../utils/messageUtils";
-import { DEFAULT_PROFILE_ID } from "../constants";
 import { runAppleScript } from "@raycast/utils";
+
+import { execSync } from "child_process";
+
+import { DEFAULT_PROFILE_ID } from "../constants";
+
+import { geNotInstalledMessage } from "../utils/messageUtils";
+import { getAppExecutablePath, getApplicationName } from "../utils/appUtils";
+
+import { NewWindowOptions, SettingsProfileOpenBehaviour, Tab } from "../types/interfaces";
 
 export async function getOpenTabs(): Promise<Tab[]> {
   await validateAppIsInstalled();
@@ -144,4 +149,23 @@ export async function getActiveTabUrl(): Promise<string> {
   );
 
   return activeTabUrl;
+}
+
+export async function openNewWindow(options: NewWindowOptions = {}) {
+  console.log("🚀 ~ index.ts:155 ~ openNewWindow ~ options:", options);
+  // await validateAppIsInstalled();
+
+  const appExecutablePath = getAppExecutablePath();
+  const switches = [];
+  if (options.incognito) {
+    switches.push("--incognito");
+  }
+  if (options.profileDirectory && options.profileDirectory != DEFAULT_PROFILE_ID) {
+    switches.push(`--profile-directory="${options.profileDirectory}"`);
+  }
+  switches.push("--new-window");
+  const command = `"${appExecutablePath}" ${switches.join(" ")}`;
+  console.log("🚀 ~ index.ts:166 ~ openNewWindow ~ command:", command);
+
+  return execSync(command);
 }

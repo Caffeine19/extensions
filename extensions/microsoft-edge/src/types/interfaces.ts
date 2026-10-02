@@ -184,3 +184,15 @@ export interface EdgeProfile {
   readonly name: string;
   readonly id: string;
 }
+
+
+export interface NewWindowOptions{
+  /**
+   * @link https://peter.sh/experiments/chromium-command-line-switches/#incognito
+   */
+  incognito?:boolean
+  /**
+   * @link https://peter.sh/experiments/chromium-command-line-switches/#profile-directory
+   */
+  profileDirectory?:string
+}

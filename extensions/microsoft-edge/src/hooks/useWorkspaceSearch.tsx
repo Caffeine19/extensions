@@ -11,6 +11,7 @@ const getWorkspaces = async (profile?: string): Promise<Workspace[]> => {
   await validateAppIsInstalled();
 
   const workspaceCacheFilePath = getWorkspacesCachePath(profile);
+  console.log("🚀 ~ useWorkspaceSearch.tsx:14 ~ getWorkspaces ~ workspaceCacheFilePath:", workspaceCacheFilePath);
   if (!existsSync(workspaceCacheFilePath)) {
     throw new Error(getNoWorkspacesMessage());
   }
@@ -18,6 +19,7 @@ const getWorkspaces = async (profile?: string): Promise<Workspace[]> => {
   const fileBuffer = await promises.readFile(workspaceCacheFilePath, { encoding: "utf-8" });
 
   const cache = JSON.parse(fileBuffer) as WorkspaceCache;
+  console.log("🚀 ~ useWorkspaceSearch.tsx:21 ~ getWorkspaces ~ cache:", cache);
 
   return cache.workspaces;
 };

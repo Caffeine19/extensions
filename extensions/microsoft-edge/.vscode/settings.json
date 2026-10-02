@@ -1,3 +1,4 @@
 {
-  "cSpell.words": ["applescript", "Behaviour", "localtime", "osascript", "raycast", "unixepoch"]
+  "cSpell.words": ["applescript", "Behaviour", "localtime", "osascript", "raycast", "unixepoch"],
+  "js/ts.tsdk.path": "node_modules/typescript/lib"
 }

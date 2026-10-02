@@ -2,11 +2,12 @@ import { Alert, Icon, Toast, confirmAlert, showToast } from "@raycast/api";
 import { setSpotifyClient } from "./helpers/withSpotifyClient";
 import { getCurrentlyPlaying } from "./api/getCurrentlyPlaying";
 import { removeFromPlaylist } from "./api/removeFromPlaylist";
-import { showFailureToast } from "@raycast/utils";
 import { skipToNext } from "./api/skipToNext";
 
 export default async function Command() {
   await setSpotifyClient();
+
+  const toast = await showToast({ style: Toast.Style.Loading, title: "Checking song..." });
 
   const currentlyPlayingData = await getCurrentlyPlaying();
   const nothingIsPlaying = !currentlyPlayingData || !currentlyPlayingData.item;
@@ -15,19 +16,27 @@ export default async function Command() {
   const playlistId = (currentlyPlayingData?.context?.uri ?? "").split(":")[2];
 
   if (nothingIsPlaying) {
-    return showToast({ style: Toast.Style.Failure, title: "Nothing is currently playing" });
+    toast.style = Toast.Style.Failure;
+    toast.title = "Nothing is currently playing";
+    return;
   }
 
   if (!isTrack) {
-    return showToast({ style: Toast.Style.Failure, title: "Removing episodes is not supported yet" });
+    toast.style = Toast.Style.Failure;
+    toast.title = "Removing episodes is not supported yet";
+    return;
   }
 
   if (trackUri === undefined) {
-    return showToast({ style: Toast.Style.Failure, title: "Unable to find track" });
+    toast.style = Toast.Style.Failure;
+    toast.title = "Unable to find track";
+    return;
   }
 
   if (!playlistId) {
-    return showToast({ style: Toast.Style.Failure, title: "Unable to find the playlist" });
+    toast.style = Toast.Style.Failure;
+    toast.title = "Unable to find the playlist";
+    return;
   }
 
   if (
@@ -43,6 +52,7 @@ export default async function Command() {
       },
     })
   ) {
+    toast.title = "Removing song...";
     try {
       await removeFromPlaylist({ playlistId, trackUris: [{ uri: trackUri }] });
 
@@ -56,18 +66,27 @@ export default async function Command() {
           },
         })
       ) {
+        toast.title = "Skipping to next...";
         try {
           await skipToNext();
-          await showToast({ style: Toast.Style.Success, title: "Skipped to next" });
+          toast.style = Toast.Style.Success;
+          toast.title = "Skipped to next";
         } catch {
-          await showToast({ style: Toast.Style.Failure, title: "Could not skip to next song" });
+          toast.style = Toast.Style.Failure;
+          toast.title = "Could not skip to next song";
         }
+      } else {
+        toast.style = Toast.Style.Success;
+        toast.title = "Removed song from playlist";
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Error removing song from playlist. Please try again.";
-      showFailureToast(errorMessage);
-      return;
+      toast.style = Toast.Style.Failure;
+      toast.title = errorMessage;
     }
+  } else {
+    toast.style = Toast.Style.Failure;
+    toast.title = "Remove cancelled";
   }
 }

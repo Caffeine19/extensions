@@ -1,4 +1,4 @@
-import { showHUD } from "@raycast/api";
+import { showToast, Toast } from "@raycast/api";
 import { getErrorMessage } from "../helpers/getError";
 import { runSpotifyScript, SpotifyScriptType, WinNotSupportedError } from "../helpers/script";
 import { getSpotifyClient } from "../helpers/withSpotifyClient";
@@ -25,10 +25,13 @@ export async function changeVolume(volume: number) {
 }
 
 export async function changeVolumeWithHUD(volume: number) {
+  const toast = await showToast({ style: Toast.Style.Loading, title: `Setting volume to ${volume}%...` });
   try {
     await changeVolume(volume);
-    await showHUD(`Volume set to ${volume}%`);
+    toast.style = Toast.Style.Success;
+    toast.title = `Volume set to ${volume}%`;
   } catch (error) {
-    await showHUD(error instanceof WinNotSupportedError ? error.message : "No active device");
+    toast.style = Toast.Style.Failure;
+    toast.title = error instanceof WinNotSupportedError ? error.message : "No active device";
   }
 }

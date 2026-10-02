@@ -1,4 +1,4 @@
-import { showHUD, Clipboard } from "@raycast/api";
+import { showToast, Toast, Clipboard } from "@raycast/api";
 import { setSpotifyClient } from "./helpers/withSpotifyClient";
 import { getCurrentlyPlaying } from "./api/getCurrentlyPlaying";
 import { TrackObject } from "./helpers/spotify.api";
@@ -6,11 +6,15 @@ import { TrackObject } from "./helpers/spotify.api";
 export default async function Command() {
   await setSpotifyClient();
 
+  const toast = await showToast({ style: Toast.Style.Loading, title: "Checking song..." });
+
   const currentlyPlayingData = await getCurrentlyPlaying();
   const nothingIsPlaying = !currentlyPlayingData || !currentlyPlayingData?.item;
 
   if (nothingIsPlaying) {
-    return await showHUD("Nothing is currently playing");
+    toast.style = Toast.Style.Failure;
+    toast.title = "Nothing is currently playing";
+    return;
   }
 
   const { item } = currentlyPlayingData;
@@ -19,6 +23,8 @@ export default async function Command() {
   const artistName = artists?.[0]?.name;
   const title = `${item.name} · ${artistName}`;
 
+  toast.title = "Copying...";
   await Clipboard.copy(title);
-  return await showHUD("Copied artist and track title to clipboard");
+  toast.style = Toast.Style.Success;
+  toast.title = "Copied artist and track title to clipboard";
 }

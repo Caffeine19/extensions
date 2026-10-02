@@ -1,4 +1,4 @@
-import { showHUD } from "@raycast/api";
+import { showToast, Toast } from "@raycast/api";
 import { getPlaybackState } from "./api/getPlaybackState";
 import { setSpotifyClient } from "./helpers/withSpotifyClient";
 import { repeat } from "./api/repeat";
@@ -19,6 +19,8 @@ function cycleRepeatState(repeatState?: string) {
 export default async function Command() {
   await setSpotifyClient();
 
+  const toast = await showToast({ style: Toast.Style.Loading, title: "Cycling repeat..." });
+
   const playbackStateData = await getPlaybackState();
   const repeatState = playbackStateData?.repeat_state;
 
@@ -26,8 +28,10 @@ export default async function Command() {
 
   try {
     await repeat(newState);
-    await showHUD(`Repeat is set to ${newState}`);
+    toast.style = Toast.Style.Success;
+    toast.title = `Repeat is set to ${newState}`;
   } catch {
-    await showHUD("No active device");
+    toast.style = Toast.Style.Failure;
+    toast.title = "No active device";
   }
 }

@@ -31,7 +31,6 @@ import {
   build,
   closeOtherWindows,
   gitBranchColor,
-  keepSectionOrder,
   layout,
   openInNewTerminalTab,
   showGitBranch,
@@ -39,6 +38,7 @@ import {
 } from "./lib/preferences";
 import { EntryLike, EntryType, PinMethods } from "./lib/types";
 import {
+  filterEntriesBySearchText,
   filterEntriesByType,
   filterUnpinnedEntries,
   getErrorMessage,
@@ -60,7 +60,8 @@ import { OpenInShell } from "./lib/actions";
 
 export default function Command() {
   const { data, isLoading, error, ...removeMethods } = useRecentEntries();
-  const [type, setType] = useState<EntryType | null>(null);
+  const [type, setType] = useState<EntryType>(EntryType.AllTypes);
+  const [searchText, setSearchText] = useState("");
   const { pinnedEntries, ...pinnedMethods } = usePinnedEntries();
 
   if (error) {
@@ -87,25 +88,30 @@ export default function Command() {
       inset={Grid.Inset.Medium}
       searchBarPlaceholder="Search recent projects..."
       isLoading={isLoading}
-      filtering={{ keepSectionOrder }}
+      filtering={false}
+      onSearchTextChange={setSearchText}
       searchBarAccessory={<EntryTypeDropdown onChange={setType} />}
     >
+      {!isLoading && (
+        <ListOrGridEmptyView
+          title={searchText ? "No Projects Found" : "No Recent Projects"}
+          description={searchText ? "Try a different search term" : `Open a project in ${build} to see it here`}
+          icon={searchText ? Icon.MagnifyingGlass : Icon.Folder}
+        />
+      )}
       <ListOrGridSection title="Pinned Projects">
-        {pinnedEntries.filter(filterEntriesByType(type)).map((entry: EntryLike, index: number) => (
-          <EntryItem
-            key={`pinned-${index}`}
-            entry={entry}
-            pinned={true}
-            index={index}
-            {...pinnedMethods}
-            {...removeMethods}
-          />
-        ))}
+        {pinnedEntries
+          .filter(filterEntriesByType(type))
+          .filter(filterEntriesBySearchText(searchText))
+          .map((entry: EntryLike, index: number) => (
+            <EntryItem key={`pinned-${index}`} entry={entry} pinned={true} {...pinnedMethods} {...removeMethods} />
+          ))}
       </ListOrGridSection>
       <ListOrGridSection title="Recent Projects">
         {data
           ?.filter(filterUnpinnedEntries(pinnedEntries))
           ?.filter(filterEntriesByType(type))
+          ?.filter(filterEntriesBySearchText(searchText))
           .map((entry: EntryLike, index: number) => (
             <EntryItem key={index} entry={entry} index={index} {...pinnedMethods} {...removeMethods} />
           ))}

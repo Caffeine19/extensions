@@ -1,6 +1,10 @@
 import * as fs from "fs";
 import { existsSync } from "fs";
-import { URL } from "url";
+import { basename, sep } from "path";
+import tildify from "tildify";
+import { URL, fileURLToPath } from "url";
+import { isDeepStrictEqual } from "util";
+import { getBuildScheme } from "./vscode";
 import {
   EntryLike,
   EntryType,
@@ -107,6 +111,67 @@ export function filterEntriesByType(filter: EntryType | null) {
 
 export function filterUnpinnedEntries(pinnedEntries: EntryLike[]) {
   return (entry: EntryLike) => pinnedEntries.find((pinnedEntry) => isSameEntry(pinnedEntry, entry)) === undefined;
+}
+
+function getEntrySearchTexts(entry: EntryLike): string[] {
+  const texts: string[] = [];
+
+  const addLocalUri = (uri: string) => {
+    try {
+      const entryPath = fileURLToPath(uri);
+      texts.push(basename(entryPath), entryPath, entryPath.split(sep).join("/"), tildify(entryPath));
+    } catch {
+      texts.push(uri);
+    }
+  };
+
+  const addRemoteUri = (uri: string, remoteAuthority: string, label?: string) => {
+    texts.push(uri, remoteAuthority, ...remoteAuthority.split("+"));
+
+    if (label) {
+      texts.push(label);
+    }
+
+    try {
+      texts.push(decodeURIComponent(new URL(uri).pathname));
+    } catch {
+      // ignore invalid remote URIs
+    }
+  };
+
+  // Mirror the item type resolution order of `EntryItem` in `index.tsx`
+  if (isWorkspaceEntry(entry)) {
+    addLocalUri(entry.workspace.configPath);
+  } else if (isFolderEntry(entry)) {
+    addLocalUri(entry.folderUri);
+  } else if (isRemoteEntry(entry)) {
+    addRemoteUri(entry.folderUri, entry.remoteAuthority, entry.label);
+  } else if (isRemoteWorkspaceEntry(entry)) {
+    addRemoteUri(entry.workspace.configPath, entry.remoteAuthority, entry.label);
+  } else if (isFileEntry(entry)) {
+    addLocalUri(entry.fileUri);
+  }
+
+  return texts;
+}
+
+/**
+ * Filters entries by a plain-text search query while preserving the given order,
+ * unlike Raycast's built-in fuzzy filtering which re-ranks results by match score.
+ * Every whitespace-separated term must match (case-insensitive substring) the entry
+ * name, path, label, or remote authority.
+ */
+export function filterEntriesBySearchText(searchText: string) {
+  const terms = searchText.trim().toLowerCase().split(/\s+/).filter(Boolean);
+
+  return (entry: EntryLike) => {
+    if (terms.length === 0) {
+      return true;
+    }
+
+    const haystack = getEntrySearchTexts(entry).join(" ").toLowerCase();
+    return terms.every((term) => haystack.includes(term));
+  };
 }
 
 export function getErrorMessage(error: unknown): string {

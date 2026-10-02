@@ -1,4 +1,4 @@
-import { Grid, ActionPanel, Action, Icon } from "@raycast/api";
+import { Grid, ActionPanel, Action, Icon, closeMainWindow } from "@raycast/api";
 import { showFailureToast, useCachedPromise } from "@raycast/utils";
 import { useState, useEffect, useMemo } from "react";
 
@@ -119,6 +119,7 @@ export default function Command() {
                         onAction={async () => {
                           try {
                             await openAlbumInPhotos(album.id);
+                            closeMainWindow();
                           } catch (e) {
                             showFailureToast(`Open failed: ${String(e)}`);
                           }

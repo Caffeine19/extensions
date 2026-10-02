@@ -1,5 +1,6 @@
 import {
   List,
+  Grid,
   ActionPanel,
   Action,
   Icon,
@@ -13,6 +14,7 @@ import { runAppleScript, showFailureToast } from "@raycast/utils";
 import { useState, useEffect, useCallback } from "react";
 
 import { fetchPhotoMetadata, getOrExportThumbnail, getOrExportOriginal, openPhotoInPhotos } from "./api/photos";
+import { ListOrGrid, ListOrGridEmptyView, ListOrGridItem, type LayoutType } from "./utils/list-or-grid";
 
 type PhotoState = {
   id: string;
@@ -45,6 +47,7 @@ export default function Command() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [previousApp, setPreviousApp] = useState<string>("");
+  const [layout, setLayout] = useState<LayoutType>("list");
 
   const revalidate = useCallback(() => {
     setPhotos([]);
@@ -95,89 +98,116 @@ export default function Command() {
     };
   }, [refreshKey, count]);
 
+  const toggleLayout = useCallback(() => {
+    setLayout((prev) => (prev === "list" ? "grid" : "list"));
+  }, []);
+
+  const photoActions = (photo: PhotoState, thumbnailPath?: string) => (
+    <ActionPanel>
+      <ActionPanel.Section>
+        <Action
+          title="Copy to Clipboard"
+          icon={Icon.Clipboard}
+          onAction={async () => {
+            try {
+              const origPath = await getOrExportOriginal(photo.id);
+              await Clipboard.copy({ file: origPath });
+              await closeMainWindow();
+              await showHUD("Copied to Clipboard");
+            } catch (e) {
+              showFailureToast(`Copy failed: ${String(e)}`);
+            }
+          }}
+        />
+        <Action
+          title={previousApp ? `Paste to ${previousApp}` : "Paste to Current App"}
+          icon={Icon.ArrowRight}
+          shortcut={{ modifiers: ["cmd"], key: "return" }}
+          onAction={async () => {
+            try {
+              const origPath = await getOrExportOriginal(photo.id);
+              await Clipboard.copy({ file: origPath });
+              await closeMainWindow();
+              await runAppleScript(`
+                tell application "System Events"
+                  keystroke "v" using command down
+                end tell
+              `);
+            } catch (e) {
+              showFailureToast(`Paste failed: ${String(e)}`);
+            }
+          }}
+        />
+        <Action
+          title="Open in Photos"
+          icon={Icon.AppWindow}
+          shortcut={{ modifiers: ["cmd"], key: "o" }}
+          onAction={async () => {
+            try {
+              await openPhotoInPhotos(photo.id);
+            } catch (e) {
+              showFailureToast(`Open failed: ${String(e)}`);
+            }
+          }}
+        />
+      </ActionPanel.Section>
+      <ActionPanel.Section>
+        {layout === "grid" && thumbnailPath ? (
+          <Action.ToggleQuickLook shortcut={{ modifiers: ["cmd"], key: "y" }} />
+        ) : null}
+        <Action
+          title="Toggle Layout"
+          icon={Icon.AppWindowGrid3x3}
+          shortcut={{ modifiers: ["cmd"], key: "l" }}
+          onAction={toggleLayout}
+        />
+        <Action
+          title="Refresh"
+          icon={Icon.ArrowClockwise}
+          shortcut={{ modifiers: ["cmd"], key: "r" }}
+          onAction={revalidate}
+        />
+      </ActionPanel.Section>
+    </ActionPanel>
+  );
+
   return (
-    <List isShowingDetail isLoading={isLoading} searchBarPlaceholder="Filter by filename or date">
+    <ListOrGrid
+      layoutType={layout}
+      isShowingDetail
+      columns={3}
+      inset={Grid.Inset.Medium}
+      isLoading={isLoading}
+      searchBarPlaceholder="Filter by filename or date"
+    >
       {photos.map((photo) => {
         const thumbnailPath = thumbnails[photo.id];
 
         return (
-          <List.Item
+          <ListOrGridItem
             key={photo.id}
+            layoutType={layout}
             icon={thumbnailPath ?? Icon.Image}
+            content={thumbnailPath ?? Icon.Image}
             title={photo.filename}
-            accessories={[{ text: formatDate(photo.date) }]}
+            subtitle={layout === "grid" ? formatDate(photo.date) : undefined}
+            accessories={layout === "list" ? [{ text: formatDate(photo.date) }] : undefined}
             keywords={[photo.filename, formatDate(photo.date)]}
+            quickLook={thumbnailPath ? { name: photo.filename, path: thumbnailPath } : undefined}
             detail={
               thumbnailPath ? (
                 <List.Item.Detail markdown={`![${photo.filename}](${encodeURI("file://" + thumbnailPath)})`} />
               ) : undefined
             }
-            actions={
-              <ActionPanel>
-                <ActionPanel.Section>
-                  <Action
-                    title="Copy to Clipboard"
-                    icon={Icon.Clipboard}
-                    onAction={async () => {
-                      try {
-                        const origPath = await getOrExportOriginal(photo.id);
-                        await Clipboard.copy({ file: origPath });
-                        await closeMainWindow();
-                        await showHUD("Copied to Clipboard");
-                      } catch (e) {
-                        showFailureToast(`Copy failed: ${String(e)}`);
-                      }
-                    }}
-                  />
-                  <Action
-                    title={previousApp ? `Paste to ${previousApp}` : "Paste to Current App"}
-                    icon={Icon.ArrowRight}
-                    shortcut={{ modifiers: ["cmd"], key: "return" }}
-                    onAction={async () => {
-                      try {
-                        const origPath = await getOrExportOriginal(photo.id);
-                        await Clipboard.copy({ file: origPath });
-                        await closeMainWindow();
-                        await runAppleScript(`
-                          tell application "System Events"
-                            keystroke "v" using command down
-                          end tell
-                        `);
-                      } catch (e) {
-                        showFailureToast(`Paste failed: ${String(e)}`);
-                      }
-                    }}
-                  />
-                  <Action
-                    title="Open in Photos"
-                    icon={Icon.AppWindow}
-                    shortcut={{ modifiers: ["cmd"], key: "o" }}
-                    onAction={async () => {
-                      try {
-                        await openPhotoInPhotos(photo.id);
-                      } catch (e) {
-                        showFailureToast(`Open failed: ${String(e)}`);
-                      }
-                    }}
-                  />
-                </ActionPanel.Section>
-                <ActionPanel.Section>
-                  <Action
-                    title="Refresh"
-                    icon={Icon.ArrowClockwise}
-                    shortcut={{ modifiers: ["cmd"], key: "r" }}
-                    onAction={revalidate}
-                  />
-                </ActionPanel.Section>
-              </ActionPanel>
-            }
+            actions={photoActions(photo, thumbnailPath)}
           />
         );
       })}
-      <List.EmptyView
+      <ListOrGridEmptyView
+        layoutType={layout}
         title={isLoading ? "Loading photos…" : "No photos found"}
         description={isLoading ? "Exporting thumbnails from Photos…" : ""}
       />
-    </List>
+    </ListOrGrid>
   );
 }

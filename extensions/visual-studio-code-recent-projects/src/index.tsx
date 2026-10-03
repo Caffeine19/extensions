@@ -12,10 +12,10 @@ import {
 } from "@raycast/api";
 import { runAppleScript, runPowerShellScript, usePromise } from "@raycast/utils";
 import { basename, dirname } from "path";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import tildify from "tildify";
 import { fileURLToPath } from "url";
-import { RemoveMethods, useRecentEntries } from "./lib/db";
+import { RemoveMethods, useActiveEntries, useRecentEntries } from "./lib/db";
 import {
   ListOrGrid,
   ListOrGridDropdown,
@@ -47,6 +47,7 @@ import {
   isMac,
   isRemoteEntry,
   isRemoteWorkspaceEntry,
+  isSameEntry,
   isValidHexColor,
   isWin,
   isWorkspaceEntry,
@@ -58,11 +59,58 @@ import { execFilePromise } from "./utils/exec";
 import { getGitBranch } from "./utils/git";
 import { OpenInShell } from "./lib/actions";
 
+function getEntrySearchText(entry: EntryLike): string {
+  if (isWorkspaceEntry(entry)) {
+    return decodeURIComponent(entry.workspace.configPath);
+  } else if (isFolderEntry(entry)) {
+    return decodeURIComponent(entry.folderUri);
+  } else if (isRemoteEntry(entry)) {
+    return `${decodeURIComponent(entry.folderUri)} ${entry.label ?? ""}`;
+  } else if (isRemoteWorkspaceEntry(entry)) {
+    return `${decodeURIComponent(entry.workspace.configPath)} ${entry.label ?? ""}`;
+  } else if (isFileEntry(entry)) {
+    return decodeURIComponent(entry.fileUri);
+  }
+  return "";
+}
+
+function matchesSearch(entry: EntryLike, searchText: string): boolean {
+  if (!searchText) return true;
+  const text = getEntrySearchText(entry).toLowerCase();
+  const terms = searchText.toLowerCase().split(/\s+/).filter(Boolean);
+  return terms.every((term) => text.includes(term));
+}
+
 export default function Command() {
   const { data, isLoading, error, ...removeMethods } = useRecentEntries();
-  const [type, setType] = useState<EntryType>(EntryType.AllTypes);
+  const { data: activeEntries } = useActiveEntries();
+  const [type, setType] = useState<EntryType | null>(null);
   const [searchText, setSearchText] = useState("");
   const { pinnedEntries, ...pinnedMethods } = usePinnedEntries();
+
+  const filteredPinnedEntries = useMemo(
+    () => pinnedEntries.filter(filterEntriesByType(type)).filter((entry) => matchesSearch(entry, searchText)),
+    [pinnedEntries, type, searchText],
+  );
+
+  const filteredActiveEntries = useMemo(
+    () =>
+      activeEntries
+        ?.filter(filterUnpinnedEntries(pinnedEntries))
+        ?.filter(filterEntriesByType(type))
+        ?.filter((entry) => matchesSearch(entry, searchText)) ?? [],
+    [activeEntries, pinnedEntries, type, searchText],
+  );
+
+  const filteredRecentEntries = useMemo(
+    () =>
+      data
+        ?.filter(filterUnpinnedEntries(pinnedEntries))
+        ?.filter((entry) => !filteredActiveEntries.some((active) => isSameEntry(active, entry)))
+        ?.filter(filterEntriesByType(type))
+        ?.filter((entry) => matchesSearch(entry, searchText)) ?? [],
+    [data, pinnedEntries, filteredActiveEntries, type, searchText],
+  );
 
   if (error) {
     showToast(Toast.Style.Failure, "Failed to load recent projects");
@@ -89,6 +137,7 @@ export default function Command() {
       searchBarPlaceholder="Search recent projects..."
       isLoading={isLoading}
       filtering={false}
+      searchText={searchText}
       onSearchTextChange={setSearchText}
       searchBarAccessory={<EntryTypeDropdown onChange={setType} />}
     >
@@ -100,21 +149,21 @@ export default function Command() {
         />
       )}
       <ListOrGridSection title="Pinned Projects">
-        {pinnedEntries
-          .filter(filterEntriesByType(type))
-          .filter(filterEntriesBySearchText(searchText))
-          .map((entry: EntryLike, index: number) => (
-            <EntryItem key={`pinned-${index}`} entry={entry} pinned={true} {...pinnedMethods} {...removeMethods} />
-          ))}
+        {filteredPinnedEntries.map((entry: EntryLike, index: number) => (
+          <EntryItem key={`pinned-${index}`} entry={entry} pinned={true} {...pinnedMethods} {...removeMethods} />
+        ))}
       </ListOrGridSection>
-      <ListOrGridSection title="Recent Projects">
-        {data
-          ?.filter(filterUnpinnedEntries(pinnedEntries))
-          ?.filter(filterEntriesByType(type))
-          ?.filter(filterEntriesBySearchText(searchText))
-          .map((entry: EntryLike, index: number) => (
-            <EntryItem key={index} entry={entry} index={index} {...pinnedMethods} {...removeMethods} />
+      {filteredActiveEntries.length > 0 && (
+        <ListOrGridSection title="Active Projects">
+          {filteredActiveEntries.map((entry: EntryLike, index: number) => (
+            <EntryItem key={`active-${index}`} entry={entry} {...pinnedMethods} {...removeMethods} />
           ))}
+        </ListOrGridSection>
+      )}
+      <ListOrGridSection title="Recent Projects">
+        {filteredRecentEntries.map((entry: EntryLike, index: number) => (
+          <EntryItem key={index} entry={entry} {...pinnedMethods} {...removeMethods} />
+        ))}
       </ListOrGridSection>
     </ListOrGrid>
   );

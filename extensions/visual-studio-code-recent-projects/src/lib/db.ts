@@ -53,9 +53,52 @@ type StoredProfileAssociations = {
   workspaces?: Record<string, string>;
 };
 
+type StoredMenuBarUri = {
+  $mid?: number;
+  path?: string;
+  scheme?: string;
+  authority?: string;
+};
+
+type StoredMenuBarItem = {
+  id?: string;
+  uri?: StoredMenuBarUri;
+  label?: string;
+  submenu?: { items?: StoredMenuBarItem[] };
+};
+
+type StoredMenuBarData = {
+  menus?: {
+    File?: { items?: StoredMenuBarItem[] };
+  };
+};
+
+type StoredWindowEntry = {
+  folder?: string;
+  workspaceIdentifier?: {
+    id: string;
+    configURIPath: string;
+  };
+  remoteAuthority?: string;
+  backupPath?: string;
+  uiState?: {
+    mode: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+};
+
+type StoredWindowsState = {
+  openedWindows?: StoredWindowEntry[];
+};
+
 type StoredGlobalState = {
   backupWorkspaces?: StoredBackupWorkspaces;
   profileAssociations?: StoredProfileAssociations;
+  lastKnownMenubarData?: StoredMenuBarData;
+  windowsState?: StoredWindowsState;
 };
 
 export type RemoveMethods = {
@@ -309,6 +352,18 @@ export function useRecentEntries() {
   return { data: combinedEntries, isLoading, removeEntry, removeAllEntries };
 }
 
+/**
+ * Returns the currently opened (active) VS Code workspace entries from
+ * `storage.json` → `windowsState.openedWindows`. The last-active window
+ * is placed first.
+ */
+export function useActiveEntries() {
+  const storageState = useMemo(() => getStoredGlobalState(), []);
+  const data = useMemo(() => getActiveEntries(storageState), [storageState]);
+
+  return { data, isLoading: false };
+}
+
 function getStateDatabasePath() {
   const sharedStateDatabasePath = getSharedStateDatabasePath();
 
@@ -406,9 +461,18 @@ function getFallbackEntries(): EntryLike[] {
     return [];
   }
 
+  // Prefer menubar recent order (actual recency from VS Code's File > Open Recent)
+  // over profileAssociations (which is insertion order, not recency).
+  const menubarEntries = getMenubarRecentEntries(storageState);
   const backupEntries = getBackupWorkspaceEntries(storageState);
   const profileEntries = getProfileAssociationEntries(storageState);
-  return mergeEntries(undefined, [...backupEntries, ...profileEntries]) ?? [];
+
+  const fallbackSource =
+    menubarEntries.length > 0
+      ? [...menubarEntries, ...backupEntries, ...profileEntries]
+      : [...backupEntries, ...profileEntries];
+
+  return mergeEntries(undefined, fallbackSource) ?? [];
 }
 
 function getStoredGlobalState(): StoredGlobalState | undefined {
@@ -514,6 +578,54 @@ function removeEntriesFromStoredGlobalState(entries: EntryLike[]): boolean {
   }
 }
 
+/**
+ * Extracts recent entries from `lastKnownMenubarData` in `storage.json`.
+ * This data reflects VS Code's actual File > Open Recent menu order,
+ * which is the true recency order. Available in VS Code 1.122+ where
+ * `recently.opened` is no longer stored in `state.vscdb`.
+ */
+function getMenubarRecentEntries(storageState: StoredGlobalState): EntryLike[] {
+  const menubarData = storageState.lastKnownMenubarData;
+  if (!menubarData) {
+    return [];
+  }
+
+  const entries: EntryLike[] = [];
+  const fileItems = menubarData.menus?.File?.items ?? [];
+
+  for (const item of fileItems) {
+    // Recurse into submenus (Open Recent is a submenu)
+    const subItems = item.submenu?.items ?? [item];
+    for (const subItem of subItems) {
+      // Also recurse one more level if needed
+      const deepItems = subItem.submenu?.items ?? [subItem];
+      for (const recentItem of deepItems) {
+        const id = recentItem.id;
+        if (!id?.startsWith("openRecent")) continue;
+
+        const uri = recentItem.uri;
+        if (!uri?.path) continue;
+
+        // Convert filesystem path to file:// URI
+        const fileUri =
+          uri.scheme === "file" || !uri.scheme
+            ? `file://${encodeURI(uri.path).replace(/#/g, "%23")}`
+            : `${uri.scheme}://${uri.authority ?? ""}${encodeURI(uri.path).replace(/#/g, "%23")}`;
+
+        if (id === "openRecentWorkspace") {
+          entries.push({ workspace: { configPath: fileUri } });
+        } else if (id === "openRecentFolder") {
+          entries.push({ folderUri: fileUri });
+        } else if (id === "openRecentFile") {
+          entries.push({ fileUri: fileUri });
+        }
+      }
+    }
+  }
+
+  return entries;
+}
+
 function getBackupWorkspaceEntries(storageState: StoredGlobalState): EntryLike[] {
   const backupWorkspaces = storageState.backupWorkspaces;
   if (!backupWorkspaces) {
@@ -536,6 +648,39 @@ function getProfileAssociationEntries(storageState: StoredGlobalState): EntryLik
     .reverse()
     .map((uri) => toEntryFromUri(uri))
     .filter((entry): entry is EntryLike => entry !== undefined);
+}
+
+/**
+ * Extracts currently opened (active) workspace entries from `windowsState` in `storage.json`.
+ * This reflects the VS Code windows that are actually open right now.
+ * Deduplicates by entry key so each workspace appears only once.
+ */
+export function getActiveEntries(storageState?: StoredGlobalState): EntryLike[] {
+  const state = storageState ?? getStoredGlobalState();
+  if (!state?.windowsState?.openedWindows?.length) {
+    return [];
+  }
+
+  return state.windowsState.openedWindows
+    .map(windowEntryToEntryLike)
+    .filter((entry): entry is EntryLike => entry !== undefined);
+}
+
+function windowEntryToEntryLike(window: StoredWindowEntry): EntryLike | undefined {
+  if (window.workspaceIdentifier?.configURIPath) {
+    const uri = window.workspaceIdentifier.configURIPath;
+    return window.remoteAuthority
+      ? { workspace: { configPath: uri }, remoteAuthority: window.remoteAuthority, label: undefined }
+      : { workspace: { configPath: uri } };
+  }
+
+  if (window.folder) {
+    return window.remoteAuthority
+      ? { folderUri: window.folder, remoteAuthority: window.remoteAuthority, label: undefined }
+      : { folderUri: window.folder };
+  }
+
+  return undefined;
 }
 
 function parseEntryList(entries: string | undefined): EntryLike[] | undefined {

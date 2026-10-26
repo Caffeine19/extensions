@@ -28,7 +28,7 @@ import {
   statSync,
 } from "fs";
 import { rm } from "fs/promises";
-import { join } from "path";
+import { join, relative, sep } from "path";
 import { execFile, execSync } from "child_process";
 import { homedir, tmpdir } from "os";
 import { ComponentType } from "react";
@@ -44,6 +44,7 @@ const preferences = getPreferenceValues();
 export type Download = {
   file: string;
   path: string;
+  relativeFolderPath: string;
   size: number;
   isDirectory: boolean;
   itemCount?: number;
@@ -75,6 +76,7 @@ export const downloadsFolder = getCachedOrDetectDownloadsFolder();
 const showHiddenFiles = preferences.showHiddenFiles;
 const fileOrder = preferences.fileOrder;
 const latestDownloadOrder = preferences.lastestDownloadOrder;
+const maxDepth = preferences.maxDepth === "unlimited" ? Infinity : Number.parseInt(preferences.maxDepth ?? "1", 10);
 export const defaultDownloadsLayout = preferences.downloadsLayout ?? "list";
 export const showPreview = preferences.showPreview ?? true;
 const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff", ".heic", ".svg"];
@@ -161,46 +163,68 @@ function getDownloadsInOrder(
   offset: number = 0,
   currentFolderPath: string | null = null,
 ): Download[] {
-  const folderPath = currentFolderPath ?? downloadsFolder;
+  const rootFolderPath = currentFolderPath ?? downloadsFolder;
   const maximumCandidates = limit === undefined ? undefined : offset + limit;
   const candidates: Download[] = [];
-  const directory = opendirSync(folderPath);
 
-  try {
-    let entry;
-    while ((entry = directory.readSync()) !== null) {
-      if (!showHiddenFiles && entry.name.startsWith(".")) {
-        continue;
-      }
-
-      const path = join(folderPath, entry.name);
-      try {
-        const stats = statSync(path);
-        const isDirectory = stats.isDirectory();
-        const download: Download = {
-          file: entry.name,
-          path,
-          size: isDirectory ? 0 : stats.size,
-          isDirectory,
-          lastModifiedAt: stats.mtime,
-          createdAt: stats.ctime,
-          addedAt: stats.atime,
-          birthAt: stats.birthtime,
-        };
-
-        const insertionIndex = candidates.findIndex((candidate) => compareDownloads(download, candidate, order) < 0);
-        candidates.splice(insertionIndex === -1 ? candidates.length : insertionIndex, 0, download);
-        if (maximumCandidates !== undefined && candidates.length > maximumCandidates) {
-          candidates.pop();
-        }
-      } catch (error) {
-        // Skip entries we can't stat (broken symlinks, removed targets, permission issues)
-        console.warn(`Skipping '${path}' because it could not be stat'd:`, error);
-      }
+  function insert(download: Download) {
+    const insertionIndex = candidates.findIndex((candidate) => compareDownloads(download, candidate, order) < 0);
+    candidates.splice(insertionIndex === -1 ? candidates.length : insertionIndex, 0, download);
+    if (maximumCandidates !== undefined && candidates.length > maximumCandidates) {
+      candidates.pop();
     }
-  } finally {
-    directory.closeSync();
   }
+
+  function visit(folderPath: string, remainingDepth: number) {
+    let directory;
+    try {
+      directory = opendirSync(folderPath);
+    } catch (error) {
+      console.warn(`Skipping directory '${folderPath}' because it could not be opened:`, error);
+      return;
+    }
+
+    try {
+      let entry;
+      while ((entry = directory.readSync()) !== null) {
+        if (!showHiddenFiles && entry.name.startsWith(".")) {
+          continue;
+        }
+
+        const path = join(folderPath, entry.name);
+        try {
+          const stats = statSync(path);
+          const isDirectory = stats.isDirectory();
+          const download: Download = {
+            file: entry.name,
+            path,
+            relativeFolderPath: relative(rootFolderPath, folderPath),
+            size: isDirectory ? 0 : stats.size,
+            isDirectory,
+            lastModifiedAt: stats.mtime,
+            // ctime is inode-change time (refreshed when files are added), not creation time
+            createdAt: stats.ctime,
+            addedAt: stats.atime,
+            birthAt: stats.birthtime,
+          };
+
+          insert(download);
+
+          // entry.isDirectory() is lstat-based, so symlinked folders are never recursed into
+          if (remainingDepth > 0 && entry.isDirectory()) {
+            visit(path, remainingDepth - 1);
+          }
+        } catch (error) {
+          // Skip entries we can't stat (broken symlinks, removed targets, permission issues)
+          console.warn(`Skipping '${path}' because it could not be stat'd:`, error);
+        }
+      }
+    } finally {
+      directory.closeSync();
+    }
+  }
+
+  visit(rootFolderPath, maxDepth);
 
   const downloads = limit === undefined ? candidates : candidates.slice(offset, offset + limit);
   return downloads.map((download) => ({
@@ -225,6 +249,15 @@ export function hasAccessToDownloadsFolder() {
     console.error(error);
     return false;
   }
+}
+
+// Trashing a folder also trashes everything inside it.
+export function containsPath(parent: string, child: string): boolean {
+  return child === parent || child.startsWith(parent + sep);
+}
+
+export function getOutermostPaths(paths: string[]): string[] {
+  return paths.filter((path) => !paths.some((other) => other !== path && containsPath(other, path)));
 }
 
 type DeleteFeedback = "toast" | "hud" | "none";

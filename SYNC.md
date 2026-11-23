@@ -1,12 +1,12 @@
 # 双 Mac 同步指南（ForkedExtensions → ExtensionsMods）
 
-> 本文件描述个人 fork 的多机同步工作流。所有个人改动都在 `my-mods` 等分支上，两台 Mac 通过 GitHub（`Caffeine19/extensions`）同步。
+> 本文件描述个人 fork 的多机同步工作流。所有个人改动都在 `my-mods-v2` 等分支上，两台 Mac 通过 GitHub（`Caffeine19/extensions`）同步。
 
 ## 仓库与目录布局
 
 | 路径                                           | 说明                                                          |
 | ---------------------------------------------- | ------------------------------------------------------------- |
-| `ExtensionsMods/`                             | `Caffeine19/extensions` 的 sparse clone，工作分支 `my-mods`   |
+| `ExtensionsMods/`                             | `Caffeine19/extensions` 的全量 clone，工作分支 `my-mods-v2`  |
 | `ExtensionsModsWorktrees/apple-photos-list-detail/` | `apl-list-detail` 分支的 git worktree（apple-photos 变体）    |
 | `ForkedExtensions/`                            | **冻结备份**（迁移前的 15 个独立 fork，含全部历史；不要再改） |
 | `ForkedExtensions-backup-2026-10-03.tar.gz`    | 迁移前的全量 tar 备份（752MB）                                |
@@ -14,7 +14,8 @@
 
 ## 分支说明
 
-- `my-mods` — 主线：14 个扩展的全部个人改动（上游 + 个人提交）
+- `my-mods-v2` — 主线：17 个扩展的全部个人改动（基于上游最新 + 单个重建提交）
+- `my-mods` / `backup/my-mods-2026-11-23` — 旧主线（已归档，含 merge 历史）
 - `apl-list-detail` — apple-photos 变体：列表+详情预览、list/grid 切换
 - `apl-no-compression` — apple-photos 变体：导出不压缩
 - `apl-all-well` — apple-photos 变体：list-detail + no-compression 合体
@@ -26,16 +27,17 @@
 # 1. GitHub 认证
 gh auth login
 
-# 2. 克隆（sparse + blob 过滤，无需拉全量 20GB）
+# 2. 克隆（全量历史，约 18GB，可安全用任何 Git GUI 浏览）
 cd /Volumes/Dev/Code/raycast   # 或任意目录，保持兄弟布局
-git clone --filter=blob:none --sparse https://github.com/Caffeine19/extensions ExtensionsMods
+git clone --sparse https://github.com/Caffeine19/extensions ExtensionsMods
 cd ExtensionsMods
 git sparse-checkout set extensions/apple-photos extensions/cling extensions/easy-new-file \
   extensions/hammerspoon extensions/imessage-2fa extensions/microsoft-edge extensions/notion \
   extensions/obsidian extensions/open-with-app extensions/surge extensions/shottr \
-  extensions/spotify-player extensions/text-shortcuts extensions/visual-studio-code-recent-projects
+  extensions/spotify-player extensions/text-shortcuts extensions/visual-studio-code-recent-projects \
+  extensions/amphetamine extensions/defbro extensions/downloads-manager
 git remote add upstream https://github.com/raycast/extensions
-git checkout my-mods
+git checkout my-mods-v2
 
 # 3. apple-photos list-detail 变体（可选，与 Mac A 相同布局）
 git worktree add ../ExtensionsModsWorktrees/apple-photos-list-detail apl-list-detail

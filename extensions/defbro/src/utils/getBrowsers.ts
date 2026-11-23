@@ -1,26 +1,23 @@
 import execPromise from "../utils/execPromise";
 import { Browser } from "../types";
 
+interface DefbroEntry {
+  name: string;
+  url: string;
+  isDefault: boolean;
+  id: string;
+}
+
+const fileUrlToPath = (url: string) => decodeURIComponent(new URL(url).pathname);
+
 export const getBrowsers = async (defbroPath: string) => {
-  const { stdout } = await execPromise(defbroPath);
+  const { stdout } = await execPromise(`"${defbroPath}" --json`);
+  const entries = JSON.parse(stdout) as DefbroEntry[];
 
-  return stdout.split("\n").reduce<Browser[]>((prev, line) => {
-    const text = line.trim();
-    if (!text) {
-      return prev;
-    }
-
-    const isDefault = text.startsWith("*");
-    const cleanText = isDefault ? text.slice(1).trim() : text;
-
-    const match = cleanText.match(/^(.+?) \((.+)\)$/);
-    if (match) {
-      const [, id, title] = match;
-      const browser = { id, title, default: isDefault };
-
-      prev.push(browser);
-    }
-
-    return prev;
-  }, []);
+  return entries.map<Browser>((entry) => ({
+    id: entry.id,
+    title: entry.name,
+    default: entry.isDefault,
+    path: fileUrlToPath(entry.url),
+  }));
 };

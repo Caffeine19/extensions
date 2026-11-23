@@ -87,6 +87,10 @@
             {
               "title": "Create Time",
               "value": "createTime"
+            },
+            {
+              "title": "Birth Time",
+              "value": "birthTime"
             }
           ]
         },
@@ -155,6 +159,37 @@
       "title": "Downloads Folder",
       "description": "The folder where your downloads are stored",
       "required": false
+    },
+    {
+      "type": "dropdown",
+      "name": "maxDepth",
+      "label": "Max Depth",
+      "title": "Max Depth",
+      "description": "How many levels of subfolders to include when scanning downloads (1 = top-level entries plus one subfolder level)",
+      "required": false,
+      "default": "1",
+      "data": [
+        {
+          "title": "Top Level Only",
+          "value": "0"
+        },
+        {
+          "title": "One Subfolder Level",
+          "value": "1"
+        },
+        {
+          "title": "Two Subfolder Levels",
+          "value": "2"
+        },
+        {
+          "title": "Three Subfolder Levels",
+          "value": "3"
+        },
+        {
+          "title": "Unlimited",
+          "value": "unlimited"
+        }
+      ]
     },
     {
       "type": "dropdown",

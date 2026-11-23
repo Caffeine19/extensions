@@ -1,5 +1,11 @@
 # Shottr Changelog
 
+## [Fix reverse scrolling capture deeplink] - {PR_MERGE_DATE}
+
+- Fixed "Capture Scrolling Reverse" using the wrong deeplink (`shottr://grab/delayed`, now uses the official `shottr://grab/scrolling/reverse`.
+- Updated the README deeplink troubleshooting table to match.
+- Argument placeholder: add default value hint to Capture Delayed.
+
 ## [Add Close Main Window preference] - 2026-07-28
 
 - Added a "Close Main Window" preference.

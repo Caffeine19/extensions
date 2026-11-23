@@ -54,8 +54,9 @@ export default function BrowserList() {
     >
       {filteredBrowsers.map((browser: Browser) => (
         <List.Item
-          key={browser.id}
+          key={browser.path}
           title={browser.title}
+          subtitle={browser.path}
           icon={browser.default ? Icon.CheckCircle : Icon.Circle}
           actions={
             <ActionPanel>

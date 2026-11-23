@@ -61,6 +61,20 @@
       "subtitle": "Microsoft Edge",
       "description": "Search Workspaces from Microsoft Edge",
       "mode": "view"
+    },
+    {
+      "name": "new-window",
+      "title": "New Window",
+      "subtitle": "Microsoft Edge",
+      "description": "Open a new Microsoft Edge window.",
+      "mode": "no-view"
+    },
+    {
+      "name": "new-incognito-window",
+      "title": "New Incognito Window",
+      "subtitle": "Microsoft Edge",
+      "description": "Open a new Microsoft Edge incognito window.",
+      "mode": "no-view"
     }
   ],
   "preferences": [

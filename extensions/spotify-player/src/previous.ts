@@ -1,4 +1,4 @@
-import { showHUD } from "@raycast/api";
+import { showToast, Toast } from "@raycast/api";
 import { setSpotifyClient } from "./helpers/withSpotifyClient";
 import { getCurrentlyPlaying } from "./api/getCurrentlyPlaying";
 import { skipToPrevious } from "./api/skipToPrevious";
@@ -6,17 +6,24 @@ import { skipToPrevious } from "./api/skipToPrevious";
 export default async function Command() {
   await setSpotifyClient();
 
+  const toast = await showToast({ style: Toast.Style.Loading, title: "Checking song..." });
+
   const currentlyPlayingData = await getCurrentlyPlaying();
   const nothingIsPlaying = !currentlyPlayingData || !currentlyPlayingData?.item;
 
   if (nothingIsPlaying) {
-    return await showHUD("Nothing is currently playing");
+    toast.style = Toast.Style.Failure;
+    toast.title = "Nothing is currently playing";
+    return;
   }
 
+  toast.title = "Skipping to previous...";
   try {
     await skipToPrevious();
-    await showHUD("Skipped to previous");
+    toast.style = Toast.Style.Success;
+    toast.title = "Skipped to previous";
   } catch {
-    await showHUD("Nothing is currently playing");
+    toast.style = Toast.Style.Failure;
+    toast.title = "Nothing is currently playing";
   }
 }

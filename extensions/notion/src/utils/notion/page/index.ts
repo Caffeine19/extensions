@@ -181,15 +181,21 @@ export async function appendToPage(pageId: string, params: { content: PageConten
 }
 
 export function getPageIcon(page: Page): Image.ImageLike {
-  return page.icon_emoji
-    ? page.icon_emoji
-    : page.icon_file
-      ? page.icon_file
-      : page.icon_external
-        ? page.icon_external
-        : page.object === "database"
-          ? Icon.List
-          : Icon.BlankDocument;
+  if (page.icon_emoji) return page.icon_emoji;
+  if (page.icon_file) return page.icon_file;
+  if (page.icon_external) return page.icon_external;
+
+  const defaultIcon = page.object === "database" ? Icon.List : Icon.BlankDocument;
+
+  return {
+    source: defaultIcon,
+
+    // Same as what you see in Notion
+    tintColor: {
+      light: "#8e8b86",
+      dark: "#ada9a3",
+    },
+  };
 }
 
 export function getPageName(page: Page): string {

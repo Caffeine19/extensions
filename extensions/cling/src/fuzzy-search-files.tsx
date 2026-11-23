@@ -200,7 +200,7 @@ function FileDetail({ filePath, isDir }: { filePath: string; isDir: boolean }) {
   try {
     stat = statSync(filePath);
   } catch {
-    return <Detail markdown={`# ${basename(filePath)}\n\nUnable to read file metadata.`} />;
+    return <List.Item.Detail markdown={`# ${basename(filePath)}\n\nUnable to read file metadata.`} />;
   }
 
   const name = basename(filePath);
@@ -208,7 +208,7 @@ function FileDetail({ filePath, isDir }: { filePath: string; isDir: boolean }) {
   const markdown = filePreviewMarkdown(filePath, isDir);
 
   return (
-    <Detail
+    <List.Item.Detail
       markdown={markdown}
       metadata={
         <Detail.Metadata>
@@ -225,13 +225,6 @@ function FileDetail({ filePath, isDir }: { filePath: string; isDir: boolean }) {
             <Detail.Metadata.TagList.Item text={isDir ? "Directory" : "File"} color={isDir ? "#007AFF" : "#34C759"} />
           </Detail.Metadata.TagList>
         </Detail.Metadata>
-      }
-      actions={
-        <ActionPanel>
-          <Action.Open title="Open" target={filePath} />
-          <Action.ShowInFinder path={filePath} />
-          <Action.CopyToClipboard title="Copy Path" content={copyablePath(filePath)} />
-        </ActionPanel>
       }
     />
   );
@@ -281,15 +274,6 @@ function FileActions({
         <Action.ShowInFinder path={filePath} />
         <Action.OpenWith path={filePath} shortcut={{ modifiers: ["cmd"], key: "o" }} />
         <Action.ToggleQuickLook shortcut={{ modifiers: ["cmd"], key: "y" }} />
-      </ActionPanel.Section>
-
-      <ActionPanel.Section title="Info">
-        <Action.Push
-          title="Show Details"
-          icon={Icon.Info}
-          target={<FileDetail filePath={filePath} isDir={isDir} />}
-          shortcut={{ modifiers: ["cmd"], key: "i" }}
-        />
       </ActionPanel.Section>
 
       <ActionPanel.Section title="Copy">
@@ -398,6 +382,7 @@ export default function Command(props: LaunchProps) {
 
   const [searchText, setSearchText] = useState(props.fallbackText ?? "");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
 
   const { isLoading, data } = useExec(
     cli,
@@ -434,16 +419,19 @@ export default function Command(props: LaunchProps) {
       filtering={false}
       searchBarPlaceholder="Fuzzy search files and folders..."
       throttle
+      onSelectionChange={(id) => setSelectedFilePath(id ?? null)}
     >
       <List.EmptyView icon={Icon.MagnifyingGlass} title="No results" description="Try a different query" />
       {results.map(({ filePath, isDir, name, dir }) => (
         <List.Item
           key={filePath}
+          id={filePath}
           icon={{ fileIcon: filePath }}
           title={name}
           subtitle={dir}
           accessories={isDir ? [{ icon: Icon.Folder, tooltip: "Directory" }] : []}
           quickLook={{ path: filePath }}
+          detail={selectedFilePath === filePath ? <FileDetail filePath={filePath} isDir={isDir} /> : undefined}
           actions={
             <FileActions
               filePath={filePath}

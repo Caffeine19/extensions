@@ -12,6 +12,7 @@
     "taschaub",
     "omaerkhan",
     "clins1994",
+    "CaffeineCat",
     "petretta"
   ],
   "pastContributors": [
@@ -69,6 +70,10 @@
         {
           "title": "Gmail",
           "value": "gmail"
+        },
+        {
+          "title": "Spark Desktop",
+          "value": "spark"
         }
       ]
     },

@@ -23,7 +23,9 @@
     "pernielsentikaer",
     "0xdhrv",
     "ridemountainpig",
-    "alvesrafa"
+    "alvesrafa",
+    "ray.dhruv",
+    "CaffeineCat"
   ],
   "pastContributors": [
     "thomaslombart",
@@ -187,6 +189,13 @@
           "required": false
         }
       ]
+    },
+    {
+      "name": "search-page-mcp",
+      "title": "Search Notion (MCP)",
+      "subtitle": "Notion",
+      "description": "Search Notion using the MCP-powered search for richer results including database entries and content.",
+      "mode": "view"
     }
   ],
   "resourceProvider": "read-resource",

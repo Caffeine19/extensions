@@ -120,6 +120,25 @@
         "amp time",
         "amp until"
       ]
+    },
+    {
+      "name": "session-config",
+      "title": "Get Session Config",
+      "subtitle": "Amphetamine",
+      "description": "Show the current session status and sleep settings",
+      "mode": "view",
+      "keywords": [
+        "config",
+        "session",
+        "settings",
+        "status",
+        "amp",
+        "amp config",
+        "amphetamine",
+        "sleep",
+        "display sleep",
+        "screen saver"
+      ]
     }
   ],
   "dependencies": {

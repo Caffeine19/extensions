@@ -276,6 +276,9 @@ class VSCodeCLI {
   private cliFilename: string;
   private execOptions: child_process.ExecFileSyncOptions | undefined;
   constructor(cliFilename: string) {
+    // Quote only for Windows shell execution (paths contain spaces there).
+    // On macOS execFileSync runs without a shell, so literal quotes would
+    // become part of the filename and the spawn fails with ENOENT.
     this.cliFilename = isWin ? `"${cliFilename}"` : cliFilename;
     this.execOptions = isWin ? { shell: true } : undefined;
   }

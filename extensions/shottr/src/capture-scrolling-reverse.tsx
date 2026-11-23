@@ -4,7 +4,7 @@ import { execSync } from "child_process";
 
 export default withShottrCheck(
   withCloseMainWindow(async function () {
-    const url = "shottr://grab/delayed";
+    const url = "shottr://grab/scrolling/reverse";
     execSync(`open -g ${url}`);
   }),
 );

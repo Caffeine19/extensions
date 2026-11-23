@@ -1,4 +1,4 @@
-import { showHUD } from "@raycast/api";
+import { showToast, Toast } from "@raycast/api";
 import { getPlaybackState } from "./api/getPlaybackState";
 import { getSpotifyAppData } from "./api/getSpotifyAppData";
 import { pause } from "./api/pause";
@@ -9,6 +9,8 @@ import { runSpotifyScript, SpotifyScriptType } from "./helpers/script";
 import { setSpotifyClient } from "./helpers/withSpotifyClient";
 
 export default async function Command() {
+  const toast = await showToast({ style: Toast.Style.Loading, title: "Toggling playback..." });
+
   // Try AppleScript first (free, no API call)
   const isSpotifyInstalled = await checkSpotifyApp();
 
@@ -18,11 +20,13 @@ export default async function Command() {
 
       if (appData?.state === "PLAYING") {
         await runSpotifyScript(SpotifyScriptType.Pause);
-        await showHUD("Paused");
+        toast.style = Toast.Style.Success;
+        toast.title = "Paused";
         return;
       } else if (appData?.state === "PAUSED" || appData?.state === "NOT_PLAYING") {
         await runSpotifyScript(SpotifyScriptType.Play);
-        await showHUD("Playing");
+        toast.style = Toast.Style.Success;
+        toast.title = "Playing";
         return;
       }
       // If NOT_RUNNING or undefined, fall through to Web API
@@ -40,18 +44,22 @@ export default async function Command() {
   if (isPlaying) {
     try {
       await pause();
-      await showHUD("Paused");
+      toast.style = Toast.Style.Success;
+      toast.title = "Paused";
     } catch (err) {
       const message = getErrorMessage(err);
-      await showHUD(message);
+      toast.style = Toast.Style.Failure;
+      toast.title = message;
     }
   } else {
     try {
       await play();
-      await showHUD("Playing");
+      toast.style = Toast.Style.Success;
+      toast.title = "Playing";
     } catch (err) {
       const message = getErrorMessage(err);
-      await showHUD(message);
+      toast.style = Toast.Style.Failure;
+      toast.title = message;
     }
   }
 }

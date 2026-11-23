@@ -21,9 +21,11 @@ import { rename } from "fs/promises";
 import { dirname, join } from "path";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  containsPath,
   defaultDownloadsLayout,
   downloadsFolder,
   getDownloadsAsync,
+  getOutermostPaths,
   getTextFilePreview,
   isImageFile,
   isTextFile,
@@ -47,6 +49,12 @@ function FilePreviewDetail({ download }: { download: Download }) {
         <List.Item.Detail.Metadata>
           <List.Item.Detail.Metadata.Label title="File" text={download.file} />
           <List.Item.Detail.Metadata.Separator />
+          {download.relativeFolderPath && (
+            <>
+              <List.Item.Detail.Metadata.Label title="Folder" text={download.relativeFolderPath} />
+              <List.Item.Detail.Metadata.Separator />
+            </>
+          )}
           {download.isDirectory ? (
             <>
               <List.Item.Detail.Metadata.Label
@@ -70,6 +78,8 @@ function FilePreviewDetail({ download }: { download: Download }) {
           <List.Item.Detail.Metadata.Label title="Last modified" text={download.lastModifiedAt.toLocaleString()} />
           <List.Item.Detail.Metadata.Separator />
           <List.Item.Detail.Metadata.Label title="Created" text={download.createdAt.toLocaleString()} />
+          <List.Item.Detail.Metadata.Separator />
+          <List.Item.Detail.Metadata.Label title="Birthed" text={download.birthAt.toLocaleString()} />
         </List.Item.Detail.Metadata>
       }
     />
@@ -243,11 +253,10 @@ function Command({ currentFolderPath = downloadsFolder }: { currentFolderPath?: 
   }, [loadNextPage]);
 
   function handleTrash(paths: string | string[]) {
+    const trashedPaths = Array.isArray(paths) ? paths : [paths];
     restartPendingLoad();
     setDownloads((downloads: Download[]) =>
-      downloads.filter((download: Download) =>
-        Array.isArray(paths) ? !paths.includes(download.path) : paths !== download.path,
-      ),
+      downloads.filter((download: Download) => !trashedPaths.some((path) => containsPath(path, download.path))),
     );
   }
 
@@ -401,7 +410,7 @@ function Command({ currentFolderPath = downloadsFolder }: { currentFolderPath?: 
             icon={Icon.Trash}
             shortcut={Keyboard.Shortcut.Common.RemoveAll}
             style={Action.Style.Destructive}
-            onAction={() => handleMoveToTrash(downloads.map((d: Download) => d.path))}
+            onAction={() => handleMoveToTrash(getOutermostPaths(downloads.map((d: Download) => d.path)))}
           />
           <Action.Push
             title="Rename"
@@ -430,6 +439,7 @@ function Command({ currentFolderPath = downloadsFolder }: { currentFolderPath?: 
 
   const getItemProps = (download: Download) => ({
     title: download.file,
+    subtitle: download.relativeFolderPath || undefined,
     quickLook: { path: download.path, name: download.file },
     actions: actions(download),
   });
